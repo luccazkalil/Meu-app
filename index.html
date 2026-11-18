@@ -160,7 +160,7 @@ function drawAnim(a,t){
 }
 const anims=new Map();
 function mount(el,key){if(el)anims.set(el,{a:AN[key](),t0:performance.now()})}
-function loop(now){for(const[el,o]of anims){if(!el.isConnected){anims.delete(el);continue}el.innerHTML=drawAnim(o.a,((now-o.t0)%o.a.d)/o.a.d)}requestAnimationFrame(loop)}
+function loop(now){for(const[el,o]of anims){if(!el.isConnected){anims.delete(el);continue}el.innerHTML=drawAnim(o.a,(Math.max(0,now-o.t0)%o.a.d)/o.a.d)}requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 const svg=(cls='')=>`<svg viewBox="0 0 200 140" class="${cls}" aria-hidden="true"></svg>`;
 
