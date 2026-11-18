@@ -9,7 +9,7 @@ IDEA: a ficha de treino colada no colchonete azul
 PICTURE: boneco animado fazendo cada exercício, grande
 COLOUR/TYPE: azul colchonete dominante, branco, amarelo da corda; Archivo
 LAYOUT: coluna única de celular, abas fixas embaixo, treino guiado em tela cheia */
-:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0b1433);--ink:light-dark(#0d1530,#eef1ff);--mat:#1d3bb3;--matd:light-dark(#1d3bb3,#2a4bd6);--soft:light-dark(#eef1fc,#14215a);--y:#ffcf2e;--mute:light-dark(#56607e,#a9b2d6);--line:light-dark(#d9def0,#26346e)}
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0b1433);--ink:light-dark(#0d1530,#eef1ff);--mat:#1d3bb3;--matd:light-dark(#1d3bb3,#8fa4ff);--soft:light-dark(#eef1fc,#14215a);--y:#ffcf2e;--mute:light-dark(#56607e,#a9b2d6);--line:light-dark(#d9def0,#26346e)}
 :root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;min-width:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Archivo,system-ui,sans-serif;overflow-x:clip;padding-bottom:84px}
@@ -41,7 +41,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(-
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);padding-bottom:env(safe-area-inset-bottom);z-index:5}
 nav button{padding:10px 4px;font-weight:600;color:var(--mute);font-size:15px}
 nav button.on{color:var(--matd);box-shadow:inset 0 3px 0 var(--matd)}
-.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .tile{background:var(--soft);border-radius:14px;padding:12px}.tile b{display:block;font-size:clamp(24px,6vw,32px);font-weight:800;color:var(--matd)}.tile span{font-size:13px;color:var(--mute)}
 .bar{height:10px;background:var(--soft);border-radius:5px;overflow:hidden;margin:6px 0 2px}.bar i{display:block;height:100%;background:var(--mat)}
 .lad{padding:10px 0;border-bottom:1px solid var(--line)}.lad small{color:var(--mute);font-size:14px}
@@ -83,6 +83,11 @@ nav button.on{color:var(--matd);box-shadow:inset 0 3px 0 var(--matd)}
 .num{width:100%;font:800 clamp(44px,13vw,64px)/1 Archivo,sans-serif;text-align:center;border:0;background:transparent;color:var(--matd);-moz-appearance:textfield}
 .num::-webkit-outer-spin-button,.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .row[data-res] small:first-child{display:block}
+.resume{background:var(--y);color:#111;border-radius:16px;padding:14px;display:grid;gap:10px}
+.resume .ghost{border-color:rgba(0,0,0,.3)}.resume .big{background:#111;color:var(--y)}
+.exitbox{border:2px solid var(--line);border-radius:16px;padding:14px;display:grid;gap:10px}
+.last{margin:0;font-size:15px;color:var(--mute)}
+.prepn{font-size:clamp(72px,24vw,120px);font-weight:800;text-align:center;line-height:1;color:var(--y)}
 @media (prefers-reduced-motion:reduce){.tg::after{transition:none}}
 </style></head><body>
 <div id="app"></div>
@@ -207,24 +212,27 @@ const EXTRA={
 const ALL={};for(const k in LAD)for(const e of LAD[k].lv)ALL[e.id]=e;for(const k in EXTRA)ALL[EXTRA[k].id]=EXTRA[k];
 const WK={A:{nm:'Treino A',sub:'Empurrar + Pernas + Core',lad:['push','legs','core']},B:{nm:'Treino B',sub:'Puxar + Pernas + Core',lad:['pull','legs','core']}};
 const yt=q=>'https://www.youtube.com/results?search_query='+encodeURIComponent(q);
-const tgt=e=>`${e.s}× ${e.lo}–${e.hi} ${e.u==='s'?'s':'reps'}${e.side?' por lado':''}`;
+const tgt=e=>`${e.s}× ${e.lo===e.hi?e.lo:e.lo+'–'+e.hi} ${e.u==='s'?'s':'reps'}${e.side?' por lado':''}`;
 
 /* ---------- estado e salvamento ---------- */
 const K='calistenia-v1';
 let S={setup:false,lv:{push:0,pull:0,legs:0,core:0},rd:{},next:'A',rope:false,hist:[]};
 try{const l=JSON.parse(localStorage.getItem(K));if(l&&l.lv)S=l}catch(e){}
 let docRef=null,saving=false,pend=false;
-function save(){try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}flush()}
+function save(){S.u=Date.now();try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}flush()}
 async function flush(){if(!docRef)return;if(saving){pend=true;return}saving=true;try{await docRef.set(JSON.parse(JSON.stringify(S)))}catch(e){}saving=false;if(pend){pend=false;flush()}}
 async function initDb(){
   let w=0;while(!(window.claude&&window.claude.use)&&w<30){await new Promise(r=>setTimeout(r,100));w++}
   if(!(window.claude&&window.claude.use))return;
-  try{const db=await window.claude.use('db');if(!db)return;const ref=db.doc('treino/estado');
+  try{const db=await window.claude.use('db');if(!db)return;
+    let uid=null;try{const u=await window.claude.use('user');uid=u?await u.id():null}catch(e){}
+    if(!uid)return;
+    const ref=db.doc('data/users/'+uid+'/estado');
     const r=await Promise.race([ref.get(),new Promise(res=>setTimeout(()=>res('__to'),10000))]);
     if(r==='__to')return;
     let d=r&&typeof r.data==='function'?r.data():(r&&r.data&&typeof r.data==='object'?r.data:r);
     docRef=ref;
-    if(d&&d.lv){S=d;try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}if(!run)render()}else if(S.setup)flush();
+    if(d&&d.lv&&(d.u||0)>=(S.u||0)){S=d;try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}if(!run)render()}else if(S.setup)flush();
   }catch(e){}
 }
 
@@ -237,6 +245,22 @@ const thisWeek=()=>S.hist.filter(h=>h.d>=wkStart(Date.now())).length;
 const cur=k=>LAD[k].lv[Math.min(S.lv[k],LAD[k].lv.length-1)];
 const fmt=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
 function beep(n=1){try{if(!ac)return;for(let i=0;i<n;i++){const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime+i*.25;o.frequency.value=880;g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.2);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+.22)}}catch(e){}try{navigator.vibrate&&navigator.vibrate(200)}catch(e){}}
+function tone(f=880,dur=.2,vol=.25){try{if(!ac)return;const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime;o.frequency.value=f;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+dur+.02)}catch(e){}}
+const audioOn=()=>{try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume&&ac.resume()}catch(e){}};
+/* tela acesa durante o treino */
+let wl=null,wantWl=false;
+async function lockOn(){wantWl=true;try{if(navigator.wakeLock&&!wl){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>{wl=null})}}catch(e){wl=null}}
+function lockOff(){wantWl=false;try{wl&&wl.release()}catch(e){}wl=null}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&wantWl)lockOn()});
+function lastSets(id){for(let i=S.hist.length-1;i>=0;i--){const x=S.hist[i].ex.find(e=>e.id===id);if(x&&x.v.length)return x.v}return null}
+function streak(){const W=7*864e5,cnt=t=>S.hist.filter(h=>h.d>=t&&h.d<t+W).length;let n=0,w=wkStart(Date.now());if(cnt(w)>=3)n++;w=wkStart(w-1);while(cnt(w)>=3){n++;w=wkStart(w-1)}return n}
+const trainedToday=()=>S.hist.some(h=>new Date(h.d).toDateString()===new Date().toDateString());
+/* treino em andamento sobrevive a recarregar a página */
+const KR=K+'-run';
+function saveRun(){try{if(!run){localStorage.removeItem(KR);return}localStorage.setItem(KR,JSON.stringify({w:run.w,i:run.i,set:run.set,t0:run.t0,items:run.items.map(it=>({id:it.e.id,lad:it.lad||null,warm:it.warm||0,v:it.v}))}))}catch(e){}}
+function dropRun(){try{localStorage.removeItem(KR)}catch(e){}}
+function loadRun(){try{const r=JSON.parse(localStorage.getItem(KR));if(!r||!r.items||Date.now()-r.t0>6*3600e3||r.items.some(it=>!ALL[it.id]))return null;return r}catch(e){return null}}
+let pendingRun=loadRun();
 function lastVal(id){for(let i=S.hist.length-1;i>=0;i--){const x=S.hist[i].ex.find(e=>e.id===id);if(x&&x.v.length)return Math.max(...x.v)}return null}
 
 /* ---------- telas ---------- */
@@ -278,7 +302,8 @@ function viewOb(){
     <button class="big" style="margin-top:16px" id="ob-done">Montar meu treino</button></div></section>`}
   const t=OBT[k],timed=t.u==='s';
   let inp='';
-  if(timed&&ob.clk==null&&!ob.done)inp=`<button class="big" id="ob-go">Iniciar cronômetro</button>`;
+  if(timed&&ob.prep)inp=`<div class="prepn" id="ob-pc">3</div><p class="note" style="margin:0;text-align:center">Se posiciona…</p>`;
+  else if(timed&&ob.clk==null&&!ob.done)inp=`<button class="big" id="ob-go">Iniciar cronômetro</button>`;
   else if(timed&&ob.clk!=null)inp=`<div class="clock" id="ob-tc">0:00</div><button class="big" id="ob-stop">Parei</button>`;
   else inp=`<div class="step"><button id="ob-mn" aria-label="Menos">−</button><input class="num" id="ob-num" inputmode="numeric" type="number" min="0" value="${ob.cur??0}" aria-label="${timed?'Segundos':'Repetições'}"><button id="ob-pl" aria-label="Mais">+</button></div>
     <p class="note" style="margin:0;text-align:center">${timed?'segundos que você aguentou (dá pra ajustar)':'repetições que você fez'}</p>
@@ -290,36 +315,38 @@ function viewOb(){
    <p class="note" style="margin:0">Descansa 1 a 2 minutos antes do próximo teste.</p></div>`;
 }
 function paintOb(){
-  clearInterval(obTick);app.innerHTML=viewOb();scrollTo(0,0);
-  const st=obSteps(),k=st[ob.i];
+  clearInterval(obTick);app.innerHTML=viewOb();
+  const st=obSteps(),k=st[ob.i];if(ob._k!==k){scrollTo(0,0);ob._k=k}
   mount($('.obfig'),k==='intro'?'skip':OBT[k]?ALL[OBT[k].e].a:'skip');
   mount($('.rp1'),'rope');mount($('.rp0'),'skip');
   app.querySelectorAll('[data-res]').forEach(r=>mount(r.querySelector('svg'),ALL[r.dataset.res].a));
+  if(ob.prep){let last=0;obTick=setInterval(()=>{const left=Math.ceil((ob.prep-Date.now())/1000),c=$('#ob-pc');if(left!==last&&left>0){last=left;if(c)c.textContent=left;tone(660,.12)}if(left<=0){ob.prep=null;ob.clk=Date.now();tone(990,.35);paintOb()}},100)}
   if(ob.clk!=null){const t=OBT[k];obTick=setInterval(()=>{const c=$('#ob-tc');if(c)c.textContent=fmt((Date.now()-ob.clk)/1000)},250)}
   const n=$('#ob-num');if(n)n.oninput=()=>{ob.cur=Math.max(0,parseInt(n.value)||0)};
 }
-function obMove(d){const st=obSteps(),k=st[ob.i];if(OBT[k]&&d>0)ob.v[k]=ob.cur??0;ob.i=Math.max(0,ob.i+d);const nk=obSteps()[ob.i];ob.cur=OBT[nk]?(ob.v[nk]??null):null;ob.clk=null;ob.done=OBT[nk]&&OBT[nk].u==='s'&&ob.v[nk]!=null;paintOb()}
+function obMove(d){const st=obSteps(),k=st[ob.i];if(OBT[k]&&d>0)ob.v[k]=ob.cur??0;ob.i=Math.max(0,ob.i+d);const nk=obSteps()[ob.i];ob.cur=OBT[nk]?(ob.v[nk]??null):null;ob.clk=null;ob.prep=null;if(ob.i>0)lockOn();ob.done=OBT[nk]&&OBT[nk].u==='s'&&ob.v[nk]!=null;paintOb()}
 function obClick(b){
   const id=b.id,step=OBT[obSteps()[ob.i]];
   if(id==='ob-next'){obMove(1);return true}
   if(id==='ob-back'){obMove(-1);return true}
   if(id==='ob-zero'){ob.cur=0;obMove(1);return true}
   if(id==='ob-mn'||id==='ob-pl'){const s=step&&step.u==='s'?5:1;ob.cur=Math.max(0,(ob.cur??0)+(id==='ob-pl'?s:-s));const n=$('#ob-num');if(n)n.value=ob.cur;return true}
-  if(id==='ob-go'){try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume&&ac.resume()}catch(e){}ob.clk=Date.now();paintOb();return true}
+  if(id==='ob-go'){audioOn();ob.prep=Date.now()+3000;paintOb();return true}
   if(id==='ob-stop'){ob.cur=Math.round((Date.now()-ob.clk)/1000);ob.clk=null;ob.done=true;beep(1);paintOb();return true}
-  if(id==='ob-redo'){ob.done=false;ob.clk=null;ob.cur=null;paintOb();return true}
+  if(id==='ob-redo'){ob.done=false;ob.clk=null;ob.prep=null;ob.cur=null;paintOb();return true}
   if(b.dataset.orope!=null){S.rope=b.dataset.orope==='1';paintOb();return true}
-  if(id==='ob-cancel'){S.setup=true;ob=null;render();return true}
-  if(id==='ob-done'){S.lv=obLevels(ob.v);S.rd={};S.test={d:Date.now(),v:{...ob.v}};S.setup=true;ob=null;save();tab='hoje';render();scrollTo(0,0);return true}
+  if(id==='ob-cancel'){lockOff();S.setup=true;ob=null;render();return true}
+  if(id==='ob-done'){lockOff();S.lv=obLevels(ob.v);S.rd={};S.test={d:Date.now(),v:{...ob.v}};S.setup=true;ob=null;save();tab='hoje';render();scrollTo(0,0);return true}
   return false;
 }
 function viewHoje(){
   const w=WK[S.next],main=cur(w.lad[0]),n=thisWeek();
   return `<section class="hero"><div class="wrap">
-   <span class="tag">Próximo treino · cerca de 30 min</span>
+   <span class="tag">${trainedToday()?'Você já treinou hoje. O ideal é descansar e voltar amanhã':'Próximo treino · cerca de 30 min'}</span>
    <h1>${w.nm}<br><span style="font-weight:600;font-size:.6em">${w.sub}</span></h1>
    <div class="fig" style="color:#fff">${svg('hfig')}</div>
-   <button class="big" id="start">Começar treino</button>
+   ${pendingRun?`<div class="resume"><b>Tem um ${WK[pendingRun.w].nm} pela metade</b><span>Parou em: ${ALL[pendingRun.items[Math.min(pendingRun.i,pendingRun.items.length-1)].id].nm}</span><div class="two"><button class="ghost" id="rdrop">Descartar</button><button class="big" id="rgo">Continuar</button></div></div>`:''}
+   <button class="${pendingRun?'ghost':'big'}" id="start">${pendingRun?'Começar do zero':'Começar treino'}</button>
    <div><span class="tag">Esta semana: ${n} de 3 treinos</span><div class="dots">${[0,1,2].map(i=>`<i class="${i<n?'f':''}"></i>`).join('')}</div></div>
   </div></section>
   <div class="wrap"><div class="sec"><h2>O que tem hoje</h2>
@@ -340,7 +367,7 @@ function viewEx(){
 function viewProg(){
   const mins=Math.round(S.hist.reduce((a,h)=>a+(h.m||0),0));
   return `<section class="hero"><div class="wrap"><h1>Sua evolução</h1>
-   <div class="tiles"><div class="tile" style="background:rgba(255,255,255,.12)"><b style="color:#fff">${S.hist.length}</b><span style="color:#dfe4ff">treinos</span></div><div class="tile" style="background:rgba(255,255,255,.12)"><b style="color:#fff">${mins}</b><span style="color:#dfe4ff">minutos</span></div><div class="tile" style="background:rgba(255,255,255,.12)"><b style="color:#fff">${thisWeek()}</b><span style="color:#dfe4ff">nesta semana</span></div></div></div></section>
+   <div class="tiles"><div class="tile" style="background:rgba(255,255,255,.12)"><b style="color:#fff">${S.hist.length}</b><span style="color:#dfe4ff">treinos</span></div><div class="tile" style="background:rgba(255,255,255,.12)"><b style="color:#fff">${mins}</b><span style="color:#dfe4ff">minutos</span></div><div class="tile" style="background:rgba(255,255,255,.12)"><b style="color:#fff">${thisWeek()}</b><span style="color:#dfe4ff">nesta semana</span></div><div class="tile" style="background:rgba(255,255,255,.12)"><b style="color:#fff">${streak()}</b><span style="color:#dfe4ff">semanas seguidas na meta</span></div></div></div></section>
   <div class="wrap"><div class="sec"><h2>Níveis</h2>${Object.entries(LAD).map(([k,l])=>{const i=S.lv[k],nx=l.lv[i+1];return `<div class="lad"><b>${l.nm}: ${l.lv[i].nm}</b><div class="bar"><i style="width:${((i+1)/l.lv.length*100).toFixed(0)}%"></i></div><small>Nível ${i+1} de ${l.lv.length}${nx?` · próximo: ${nx.nm}`:' · topo da escada!'}${S.rd[k]?` · ${S.rd[k]} de 2 treinos batendo a meta`:''}</small></div>`}).join('')}</div>
   <div class="sec"><h2>Melhor série por treino</h2><div class="chips">${Object.entries(LAD).map(([k,l])=>`<button data-cl="${k}" class="${k===chartLad?'on':''}">${l.nm}</button>`).join('')}</div><div class="chart" id="chart"></div></div>
   <div class="sec"><h2>Histórico</h2>${S.hist.length?S.hist.slice().reverse().slice(0,20).map(h=>`<div class="hist"><div><b>${WK[h.w].nm} · ${new Date(h.d).toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'})}</b><br><small>${h.ex.filter(e=>!e.warm).map(e=>`${esc(ALL[e.id]?ALL[e.id].nm:e.id)} ${e.v.join('·')}`).join(' / ')}</small></div><button class="danger" data-del="${h.d}">Apagar</button></div>`).join(''):'<p class="empty">Nenhum treino ainda. O primeiro é o mais difícil, bora!</p>'}</div>
@@ -389,13 +416,20 @@ function openEx(id){
 
 /* ---------- treino guiado ---------- */
 function startRun(){
-  try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume&&ac.resume()}catch(e){}
+  audioOn();pendingRun=null;
   const w=WK[S.next];
   const warm=[EXTRA.circ,S.rope?EXTRA.ropeW:EXTRA.skipW,EXTRA.sqW].map(e=>({e,warm:1,v:[]}));
   const main=w.lad.map(k=>({e:cur(k),lad:k,v:[]}));
   const fin={e:S.rope?EXTRA.rope:EXTRA.skip,v:[]};
   run={w:S.next,items:[...warm,...main,fin],i:0,set:0,ph:'work',t0:Date.now(),val:null,clk:null,exit:false};
-  $('#run').classList.add('show');paintRun();
+  $('#run').classList.add('show');lockOn();paintRun();
+}
+function resumeRun(){
+  const r=pendingRun;pendingRun=null;audioOn();
+  run={w:r.w,items:r.items.map(it=>({e:ALL[it.id],lad:it.lad||undefined,warm:it.warm||undefined,v:it.v})),i:r.i,set:r.set,ph:'work',t0:r.t0,val:null,clk:null,exit:false};
+  const it=run.items[run.i];if(it&&run.set>=it.e.s){run.i++;run.set=0}
+  if(run.i>=run.items.length){run.i=run.items.length-1;run.ph='end'}
+  $('#run').classList.add('show');lockOn();paintRun();
 }
 function curIt(){return run.items[run.i]}
 function paintRun(){
@@ -414,46 +448,56 @@ function paintRun(){
     const timed=e.u==='s';
     body=`<span class="chip on" style="margin:0;justify-self:start">${it.lad?LAD[it.lad].nm:'Finalização'} · série ${run.set+1} de ${e.s}</span><h2>${e.nm}</h2><div class="fig">${svg('rfig')}</div>
      <p class="target" style="margin:0">Meta: ${e.lo}–${e.hi} ${timed?'segundos':'reps'}${e.side?' por lado':''}</p>
-     ${timed&&run.clk==null&&!run.timedDone?`<button class="big" id="go">Iniciar cronômetro</button>`:''}
+     ${(()=>{const ls=lastSets(e.id);return ls?`<p class="last">Última vez: ${ls.join(' · ')} ${timed?'s':'reps'}</p>`:''})()}
+     ${timed&&run.prep?`<div class="prepn" id="pc">3</div><p class="note" style="margin:0;text-align:center">Se posiciona…</p>`:''}
+     ${timed&&run.clk==null&&!run.prep&&!run.timedDone?`<button class="big" id="go">Iniciar cronômetro</button>`:''}
      ${timed&&run.clk!=null?`<div class="clock" id="tc">0:00</div><button class="big" id="stop">Parei</button>`:''}
      ${!timed||run.timedDone?`<div class="step"><button id="mn" aria-label="Menos">−</button><b id="vv">${run.val}</b><button id="pl" aria-label="Mais">+</button></div><p class="note" style="margin:0;text-align:center">${timed?'segundos que você aguentou':'reps que você fez'}</p><button class="big" id="log">Série feita</button>`:''}
      <details><summary class="note">Como fazer</summary><ul class="cues">${e.c.map(c=>`<li>${c}</li>`).join('')}</ul><a class="yt" href="${yt(e.q)}" target="_blank" rel="noopener">Ver vídeos no YouTube</a></details>`;
   }
-  R.innerHTML=`<div class="wrap"><div class="top"><button class="ghost" id="quit">${run.exit?'Sair sem salvar?':'Sair'}</button><span class="note">${WK[run.w].nm}</span></div><div class="prog"><i style="width:${pct}%"></i></div>${body}</div>`;
+  const anyDone=run.items.some(x=>!x.warm&&x.v.length);
+  const exitBox=run.exit?`<div class="exitbox"><b>Parar o treino agora?</b><span class="note">${anyDone?'Se salvar, as séries que você já fez entram no histórico.':'Você ainda não registrou nenhuma série.'}</span><div class="two"><button class="ghost danger" id="qdrop">Descartar</button>${anyDone?'<button class="big" id="qsave">Salvar e sair</button>':'<button class="big" id="qback">Continuar</button>'}</div>${anyDone?'<button class="ghost" id="qback">Continuar treinando</button>':''}</div>`:'';
+  R.innerHTML=`<div class="wrap"><div class="top"><button class="ghost" id="quit">Sair</button><span class="note">${WK[run.w].nm}</span></div><div class="prog"><i style="width:${pct}%"></i></div>${exitBox}${body}</div>`;
   const f=R.querySelector('.rfig');
   if(f)mount(f,run.ph==='rest'?run.items[nextStep().i].e.a:e.a);
-  $('#quit').onclick=()=>{if(run.exit){closeRun()}else{run.exit=true;paintRun();setTimeout(()=>{if(run&&run.exit){run.exit=false;const q=$('#quit');if(q)q.textContent='Sair'}},3000)}};
+  $('#quit').onclick=()=>{run.exit=!run.exit;paintRun();if(run.exit)R.scrollTop=0};
+  const qd=$('#qdrop');if(qd)qd.onclick=closeRun;
+  const qs=$('#qsave');if(qs)qs.onclick=()=>{run.ph='end';paintRun()};
+  const qb=$('#qback');if(qb)qb.onclick=()=>{run.exit=false;paintRun()};
   if(run.ph==='rest'){
     const t0=Date.now(),start=run.restLeft;
-    tick=setInterval(()=>{run.restLeft=Math.max(0,start-(Date.now()-t0)/1000);const c=$('#rc');if(c)c.textContent=fmt(Math.ceil(run.restLeft));if(run.restLeft<=0){beep(2);advance()}},250);
+    tick=setInterval(()=>{run.restLeft=Math.max(0,start-(Date.now()-t0)/1000);const c=$('#rc'),sec=Math.ceil(run.restLeft);if(c)c.textContent=fmt(sec);if(sec>0&&sec<=3&&sec!==run.lastSec){run.lastSec=sec;tone(660,.12)}if(run.restLeft<=0){beep(2);advance()}},250);
     $('#plus').onclick=()=>{run.restLeft+=15;paintRun()};$('#skipR').onclick=advance;
   }else if(it.warm){
     const t0=Date.now(),start=run.warmLeft??e.hi;
     tick=setInterval(()=>{run.warmLeft=Math.max(0,start-(Date.now()-t0)/1000);const c=$('#wc');if(c)c.textContent=fmt(Math.ceil(run.warmLeft));if(run.warmLeft<=0){beep(1);nextWarm()}},250);
     $('#skipW').onclick=nextWarm;
   }else{
-    const go=$('#go');if(go)go.onclick=()=>{run.clk=Date.now();paintRun()};
+    const go=$('#go');if(go)go.onclick=()=>{audioOn();run.prep=Date.now()+3000;paintRun()};
+    if(run.prep){let last=0;tick=setInterval(()=>{const left=Math.ceil((run.prep-Date.now())/1000),c=$('#pc');if(left!==last&&left>0){last=left;if(c)c.textContent=left;tone(660,.12)}if(left<=0){run.prep=null;run.clk=Date.now();tone(990,.35);paintRun()}},100)}
     if(run.clk!=null){tick=setInterval(()=>{const s=(Date.now()-run.clk)/1000,c=$('#tc');if(c)c.textContent=fmt(s);if(Math.floor(s)===e.hi&&!run.bp){run.bp=1;beep(1)}},250);
       $('#stop').onclick=()=>{run.val=Math.max(1,Math.round((Date.now()-run.clk)/1000));run.clk=null;run.bp=0;run.timedDone=true;paintRun()}}
     const mn=$('#mn');if(mn){const st=e.u==='s'?5:1;mn.onclick=()=>{run.val=Math.max(0,run.val-st);$('#vv').textContent=run.val};$('#pl').onclick=()=>{run.val+=st;$('#vv').textContent=run.val};
       $('#log').onclick=()=>{it.v.push(run.val);run.timedDone=false;run.set++;if(run.i===run.items.length-1&&run.set>=e.s){run.ph='end';paintRun();return}run.ph='rest';run.restLeft=e.rest;paintRun()}}
   }
+  saveRun();
 }
 function nextStep(){const it=curIt();return run.set<it.e.s?{i:run.i,set:run.set}:{i:run.i+1,set:0}}
 function advance(){const it=curIt();if(run.set>=it.e.s){run.i++;run.set=0;run.val=null}else run.val=null;run.ph='work';paintRun()}
 function nextWarm(){clearInterval(tick);curIt().v.push(curIt().e.hi);run.i++;run.set=0;run.warmLeft=null;run.val=null;run.ph='work';paintRun()}
-function closeRun(){clearInterval(tick);run=null;$('#run').classList.remove('show');$('#run').innerHTML='';render()}
+function closeRun(){clearInterval(tick);lockOff();run=null;dropRun();$('#run').classList.remove('show');$('#run').innerHTML='';render()}
 function paintEnd(){
-  const msgs=[];
-  for(const it of run.items){if(!it.lad)continue;const e=it.e,ok=it.v.length>=e.s&&it.v.every(v=>v>=e.hi);
+  clearInterval(tick);lockOff();dropRun();
+  const msgs=[],partial=run.items.some(x=>!x.warm&&x.v.length<x.e.s);
+  for(const it of run.items){if(!it.lad||it.v.length<it.e.s)continue;const e=it.e,ok=it.v.every(v=>v>=e.hi);
     if(ok){S.rd[it.lad]=(S.rd[it.lad]||0)+1;if(S.rd[it.lad]>=2&&S.lv[it.lad]<LAD[it.lad].lv.length-1){S.lv[it.lad]++;S.rd[it.lad]=0;msgs.push(['up',`Subiu de nível! ${LAD[it.lad].nm}: agora é ${cur(it.lad).nm}.`])}else msgs.push(['',`${e.nm}: meta batida (${S.rd[it.lad]} de 2). Mais uma dessas e você sobe.`])}
     else S.rd[it.lad]=0;}
   const m=(Date.now()-run.t0)/60000;
-  S.hist.push({d:Date.now(),w:run.w,m:Math.round(m),ex:run.items.map(it=>({id:it.e.id,v:it.v,warm:it.warm?1:0}))});
+  S.hist.push({d:Date.now(),w:run.w,m:Math.round(m),ex:run.items.filter(it=>it.v.length).map(it=>({id:it.e.id,v:it.v,warm:it.warm?1:0}))});
   S.next=run.w==='A'?'B':'A';save();
-  $('#run').innerHTML=`<div class="wrap" style="padding-top:24px"><span class="chip on" style="margin:0;justify-self:start">Treino concluído</span><h1>Mandou bem!</h1><p class="target" style="margin:0">${Math.max(1,Math.round(m))} min · ${thisWeek()} de 3 treinos nesta semana</p>
+  $('#run').innerHTML=`<div class="wrap" style="padding-top:24px"><span class="chip on" style="margin:0;justify-self:start">${partial?'Treino parcial salvo':'Treino concluído'}</span><h1>${partial?'Valeu o esforço!':'Mandou bem!'}</h1><p class="target" style="margin:0">${Math.max(1,Math.round(m))} min · ${thisWeek()} de 3 treinos nesta semana</p>
    ${msgs.map(([c,t])=>`<div class="msg ${c}">${t}</div>`).join('')}
-   ${run.items.filter(i=>!i.warm).map(i=>`<div class="hist"><b>${i.e.nm}</b><span>${i.v.join(' · ')} ${i.e.u==='s'?'s':''}</span></div>`).join('')}
+   ${run.items.filter(i=>!i.warm&&i.v.length).map(i=>`<div class="hist"><b>${i.e.nm}</b><span>${i.v.join(' · ')} ${i.e.u==='s'?'s':''}</span></div>`).join('')}
    <p class="note">Próximo: ${WK[S.next].nm}. Descansa pelo menos um dia antes.</p><button class="big" id="fin">Fechar</button></div>`;
   $('#fin').onclick=closeRun;
 }
@@ -464,7 +508,9 @@ document.addEventListener('click',ev=>{
   if(ob&&!S.setup&&obClick(b))return;
   if(b.dataset.t){tab=b.dataset.t;render();scrollTo(0,0);return}
   if(b.closest('#app')&&b.dataset.ex){openEx(b.dataset.ex);return}
-  if(b.id==='start'){startRun();return}
+  if(b.id==='start'){dropRun();startRun();return}
+  if(b.id==='rgo'){resumeRun();return}
+  if(b.id==='rdrop'){pendingRun=null;dropRun();render();return}
   if(b.id==='ropeT'){S.rope=!S.rope;save();render();return}
   if(b.id==='swap'){S.next=S.next==='A'?'B':'A';save();render();return}
   if(b.dataset.cl){chartLad=b.dataset.cl;render();return}
